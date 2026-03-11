@@ -125,19 +125,20 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
       limit: parsed.limit
     });
 
+    // Use city from parsed query, default to Delhi
+    const city = parsed.city || 'Delhi';
+
     try {
       let data;
 
       // Handle advanced sorting overrides
       if (parsed.sort_by) {
         if (parsed.sort_by === 'luxury') {
-          // For luxury, we want cluster data sorted by luxury count
           const clusters = await getClusters();
           data = (clusters as any[]).sort((a, b) => b.luxury_count - a.luxury_count);
           setQueryType('clusters');
         } else {
-          // For other scores, fetch generic locations and sort client-side
-          const locations = await getLocations({ limit: 100 });
+          const locations = await getLocations({ limit: 100, city });
 
           if (parsed.sort_by === 'commercial') {
             data = (locations as any[]).sort((a, b) => b.commercial_score - a.commercial_score);
@@ -147,38 +148,35 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
             data = (locations as any[]).sort((a, b) => b.amenities_score - a.amenities_score);
           }
 
-          if (parsed.limit) {
-            data = data.slice(0, parsed.limit);
-          } else {
-            data = data.slice(0, 10);
-          }
+          data = parsed.limit ? data.slice(0, parsed.limit) : data.slice(0, 10);
           setQueryType('top_locations');
         }
       } else {
         switch (parsed.query_type) {
           case 'top_locations':
-            data = await getTopLocations(parsed.limit || 10);
+            data = await getTopLocations(parsed.limit || 10, city);
             break;
           case 'location_detail':
             if (!parsed.location_name) {
               throw new Error('Location name is required');
             }
-            data = await getLocationByName(parsed.location_name);
+            data = await getLocationByName(parsed.location_name, city);
             break;
           case 'all_locations':
             data = await getLocations({
               limit: parsed.limit || 50,
-              min_score: parsed.min_score
+              min_score: parsed.min_score,
+              city
             });
             break;
           case 'shops_by_brand':
             if (!parsed.brand_name) {
               throw new Error('Brand name is required');
             }
-            data = await getShopsByBrand(parsed.brand_name);
+            data = await getShopsByBrand(parsed.brand_name, city);
             break;
           case 'all_shops':
-            data = await getShops({ limit: parsed.limit || 50 });
+            data = await getShops({ limit: parsed.limit || 50, city });
             break;
           case 'clusters':
             data = await getClusters();
@@ -198,17 +196,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
     } catch (error: any) {
       console.error("Fetch error:", error);
       let msg = error.message || 'Failed to fetch data';
-
-      if (msg.includes('404') || msg.includes('not found')) {
-        setIsInfoMessage(true);
-        if (parsed.query_type === 'location_detail' && parsed.location_name) {
-          msg = `Sorry, I couldn’t find any data for "${parsed.location_name}" right now. Try a nearby area or check the spelling.`;
-        } else if (parsed.query_type === 'shops_by_brand' && parsed.brand_name) {
-          msg = `Sorry, I couldn’t find any store data for "${parsed.brand_name}" right now. Try a different brand or broaden your search.`;
-        } else {
-          msg = 'Sorry, I couldn’t find relevant data for this request right now. Try refining the location or using a broader query.';
-        }
-      }
       setErrorMessage(msg);
     } finally {
       setIsLoading(false);

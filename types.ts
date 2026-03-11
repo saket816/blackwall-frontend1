@@ -96,6 +96,7 @@ export type QueryType =
 
 export interface ParsedDelhiQuery {
   query_type: QueryType;
+  city?: string;          // ← ADD THIS
   location_name?: string;
   brand_name?: string;
   limit?: number;
