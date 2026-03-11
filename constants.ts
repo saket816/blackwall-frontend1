@@ -32,4 +32,4 @@ export const UI_COLORS = {
   userBubble: 'bg-[#343541]',
   botBubble: 'bg-[#444654]',
   border: 'border-[#d9d9e3]/10',
-};
+};// trigger
