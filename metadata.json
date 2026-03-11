@@ -1,0 +1,5 @@
+{
+  "name": "Custom LLM Chat Interface",
+  "description": "A ChatGPT-style interface that connects to a custom backend API endpoint for processing prompts.",
+  "requestFramePermissions": []
+}
